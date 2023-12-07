@@ -17,7 +17,7 @@ main_menu_shop = KeyboardButton(text='Магазин')
 main_menu_ref = KeyboardButton(text='Рефералы')
 main_menu_top = KeyboardButton(text='Топ')
 main_menu_info = KeyboardButton(text='Инфо')
-main_menu_markup = ReplyKeyboardMarkup()
+main_menu_markup = ReplyKeyboardMarkup(resize_keyboard=True)
 main_menu_markup.add(main_menu_shop, main_menu_ref, main_menu_top, main_menu_info)
 
 
