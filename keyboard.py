@@ -8,11 +8,6 @@ from aiogram.types import ReplyKeyboardRemove, \
 ###############
 
 
-create_link_button = InlineKeyboardButton('Link', callback_data='/create_link')
-markup_link = InlineKeyboardMarkup()
-markup_link.row(create_link_button)
-
-
 main_menu_shop = KeyboardButton(text='Магазин')
 main_menu_ref = KeyboardButton(text='Рефералы')
 main_menu_top = KeyboardButton(text='Топ')
@@ -32,3 +27,8 @@ accept_button_shop = InlineKeyboardButton('Подтверждаю', callback_dat
 decline_button_shop = InlineKeyboardButton('Отказываюсь', callback_data='/decline_button')
 markup_accept_shop = InlineKeyboardMarkup()
 markup_accept_shop.row(accept_button_shop, decline_button_shop)
+
+
+cancel_button = InlineKeyboardButton('Отмена', callback_data='/cancel_button')
+markup_cancel = InlineKeyboardMarkup()
+markup_cancel.row(cancel_button)

@@ -32,6 +32,7 @@ class Database:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL UNIQUE,
             owner_id INTEGER,
+            username_owner TEXT,
             date TEXT
         )
         ''')
@@ -42,9 +43,9 @@ class Database:
             'INSERT INTO Partners (user_id, user, link, balance, ref_balance, all_ref) VALUES (?, ?, ?, ?, ?, ?)', (user_id, username, link, 0, 0, 0))
 
     @db_session
-    def insert_user(self, user_id: int, owner_id: str, date: str, cursor: Cursor):
+    def insert_user(self, user_id: int, owner_id: str, username_owner: str, date: str, cursor: Cursor):
         cursor.execute(
-            'INSERT INTO Users (user_id, owner_id, date) VALUES (?, ?, ?)', (user_id, owner_id, date))
+            'INSERT INTO Users (user_id, owner_id, username_owner, date) VALUES (?, ?, ?, ?)', (user_id, owner_id, username_owner, date))
 
     @db_session
     def select_partner(self, user_id: int, cursor: Cursor):
@@ -56,7 +57,7 @@ class Database:
     @db_session
     def get_partner(self, link: str, cursor: Cursor):
         cursor.execute(
-            'SELECT user_id FROM Partners WHERE link = ?', (link,))
+            'SELECT user_id, user FROM Partners WHERE link = ?', (link,))
         result = cursor.fetchone()
         return result
 
@@ -102,9 +103,24 @@ class Database:
         return len(result)
 
     @db_session
+    def select_all_users_today(self, date: str, cursor: Cursor):
+        cursor.execute('SELECT username_owner FROM Users WHERE date = ?', (date,))
+        result = cursor.fetchall()
+        return result
+
+    @db_session
     def update_ref_balance(self, user_id: int, count: int, cursor: Cursor):
         cursor.execute(
             'UPDATE Partners SET ref_balance = ? WHERE user_id = ?', (count, user_id,))
+
+
+    @db_session
+    def select_count_ref_today(self, date: str, cursor: Cursor):
+        cursor.execute(
+            'SELECT username_owner, COUNT(username_owner) FROM Users GROUP BY username_owner')
+        result = cursor.fetchall()
+        return result
+
 
     @db_session
     def update_all_ref(self, user_id: int, count: int, cursor: Cursor):

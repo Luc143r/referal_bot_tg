@@ -45,6 +45,8 @@ async def response_shop(message: types.Message):
                                             '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
                                             'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
 
+    #db.update_ref_balance(user_id, 205)
+
 
 @dp.message_handler(Text(equals='Рефералы'))
 async def response_ref(message: types.Message):
@@ -68,6 +70,14 @@ async def response_ref(message: types.Message):
 
 @dp.message_handler(Text(equals='Топ'))
 async def response_top(message: types.Message):
+    top = []
+    today = datetime.today().strftime('%d-%m-%Y')
+    users = db.select_all_users_today(today)
+    if not users:
+        await bot.send_message(message.chat.id, 'Сегодня пока никто еще никого не пригласил :(')
+    else:
+        result = db.select_count_ref_today(today)
+        print(result)
     await bot.send_message(message.chat.id, 'Здесь будет топчик по приглосам потом. Из бд подтянется')
 
 
@@ -77,21 +87,13 @@ async def response_info(message: types.Message):
                                             'и они подписались. За приглашенных рефералов можно покупать различные привелегии.')
 
 
-'''@dp.callback_query_handler(lambda call: call.data == '/create_link')
-async def start_test_one(callback_query: types.CallbackQuery, state: FSMContext):
-    channel_id = -1002074971755
-    object_link = await bot.create_chat_invite_link(chat_id=channel_id, name=f'{callback_query.from_user.username}', creates_join_request=True)
-    invite_link = object_link['invite_link']
-    await bot.send_message(callback_query.message.chat.id, f'Твоя пригласительная ссылка: {invite_link}', reply_markup=markup_link)
-    await callback_query.answer()'''
-
-
 @dp.chat_join_request_handler()
 async def on_user_joined(update: types.ChatJoinRequest):
     invite_link = update['invite_link']['invite_link']
     user_id = update['from']['id']
     username = update['from']['username']
     id_partner = db.get_partner(invite_link)[0]
+    name_partner = db.get_partner(invite_link)[1]
     ref_balance = db.select_ref_balance(id_partner)[0]
     all_ref = db.select_all_ref(id_partner)[0]
 
@@ -100,11 +102,75 @@ async def on_user_joined(update: types.ChatJoinRequest):
     is_instance = db.select_user(user_id)
     if not is_instance:
         today_date = datetime.today().strftime('%d-%m-%Y')
-        db.insert_user(user_id, id_partner, today_date)
+        db.insert_user(user_id, id_partner, name_partner, today_date)
         db.update_ref_balance(id_partner, ref_balance+1)
         db.update_all_ref(id_partner, all_ref+1)
     else:
         pass
 
-    print(ref_balance)
-    print(all_ref)
+
+@dp.callback_query_handler(lambda call: call.data == '/films_button')
+async def films_response(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    print(user_id)
+    ref_balance = db.select_ref_balance(user_id)[0]
+    if ref_balance >= 10:
+        await bot.send_message(callback_query.message.chat.id, f'Напишите информацию по заказу.', reply_markup=markup_cancel)
+        await Buy_films().films.set()
+    else:
+        await bot.send_message(callback_query.message.chat.id, 'У вас пока не хватает на покупку. Приглашайте больше людей', reply_markup=markup_shop)
+    await callback_query.answer()
+
+
+@dp.callback_query_handler(lambda call: call.data == '/cancel_button', state='*')
+async def cancel(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    ref_balance = db.select_ref_balance(user_id)[0]
+    await bot.send_message(callback_query.message.chat.id, f'Ваш баланс: {ref_balance} рефералов\nФильм/серия '
+                                            '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
+                                            'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
+    await state.reset_data()
+    await state.reset_state()
+    await state.finish()
+    await callback_query.answer()
+
+
+@dp.message_handler(state=Buy_films.films)
+async def info_buy_films(message: types.Message, state: FSMContext):
+    await state.update_data(films=message.text)
+    await bot.send_message(message.chat.id, 'Спасибо за информацию, передал ее для оформления покупки')
+    user_id = message.from_user.id
+    username = message.from_user.username
+    info = await state.get_data()
+    print(user_id)
+    ref_balance = db.select_ref_balance(user_id)[0]
+    db.update_ref_balance(user_id, ref_balance-10)
+    await bot.send_message(6770023877, f'Новый заказ от @{username}\n\n{info["films"]}')
+    await state.finish()
+
+
+@dp.callback_query_handler(lambda call: call.data == '/adv_button')
+async def adv_response(callback_query: types.CallbackQuery, state: FSMContext):
+    user_id = callback_query.from_user.id
+    print(user_id)
+    ref_balance = db.select_ref_balance(user_id)[0]
+    if ref_balance >= 200:
+        await bot.send_message(callback_query.message.chat.id, f'Напишите информацию по заказу.', reply_markup=markup_cancel)
+        await Buy_adv().adv.set()
+    else:
+        await bot.send_message(callback_query.message.chat.id, 'У вас пока не хватает на покупку. Приглашайте больше людей', reply_markup=markup_shop)
+    await callback_query.answer()
+
+
+@dp.message_handler(state=Buy_adv.adv)
+async def info_buy_films(message: types.Message, state: FSMContext):
+    await state.update_data(adv=message.text)
+    await bot.send_message(message.chat.id, 'Спасибо за информацию, передал ее для оформления покупки')
+    user_id = message.from_user.id
+    username = message.from_user.username
+    info = await state.get_data()
+    print(user_id)
+    ref_balance = db.select_ref_balance(user_id)[0]
+    db.update_ref_balance(user_id, ref_balance-200)
+    await bot.send_message(6770023877, f'Новый заказ от @{username}\n\n{info["adv"]}')
+    await state.finish()
