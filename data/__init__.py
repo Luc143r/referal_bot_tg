@@ -1,3 +1,5 @@
-from data import database
+from data.database import Database
 
-db = database.Database()
+db = Database()
+
+__all__ = ['db']
