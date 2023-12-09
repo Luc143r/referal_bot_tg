@@ -26,17 +26,24 @@ async def command_start(message: types.Message):
             object_link = await bot.create_chat_invite_link(chat_id=channel_id, name=username, creates_join_request=True)
             invite_link = object_link['invite_link']
             db.insert_partner(user_id, username, invite_link)
-            await bot.send_message(message.chat.id, f'Привет! Вот твоя реферальная ссылочка, надеюсь ты пригласишь много людей:)\n{invite_link}', reply_markup=main_menu_markup)
+            await bot.send_message(message.chat.id, f'Привет! Вот твоя реферальная ссылочка, '
+                                                    f'надеюсь ты пригласишь много людей:)\n{invite_link}', reply_markup=main_menu_markup)
         else:
             invite_link = db.select_link(user_id)[0]
-            await bot.send_message(message.chat.id, f'Привет, кажется ты уже получал у меня ссылку. Кстати вот она: {invite_link}', reply_markup=main_menu_markup)
+            await bot.send_message(message.chat.id, f'Привет, кажется ты уже получал у меня ссылку. '
+                                                    f'Кстати вот она: {invite_link}', reply_markup=main_menu_markup)
     else:
-        await bot.send_message(message.chat.id, 'Привет. Укажи пожалуйста свой username в настройках телеграма, чтобы я мог привязать к тебе твою реферальную ссылку :)', reply_markup=main_menu_markup)
+        await bot.send_message(message.chat.id, 'Привет. Укажи пожалуйста свой username в настройках телеграма, '
+                                                'чтобы я мог привязать к тебе твою реферальную ссылку :)', reply_markup=main_menu_markup)
 
 
 @dp.message_handler(Text(equals='Магазин'))
 async def response_shop(message: types.Message):
-    await bot.send_message(message.chat.id, 'Выбери, что хочешь приобрести, скорлупа ;)', reply_markup=markup_shop)
+    user_id = message.from_id
+    ref_balance = db.select_ref_balance(user_id)[0]
+    await bot.send_message(message.chat.id, f'Ваш баланс: {ref_balance} рефералов\nФильм/серия '
+                                            '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
+                                            'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
 
 
 @dp.message_handler(Text(equals='Рефералы'))
