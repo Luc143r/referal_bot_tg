@@ -18,9 +18,10 @@ from datetime import datetime, timedelta
 async def command_start(message: types.Message):
     print(message.from_id)
     channel_id = -1002074971755
-    username = message.from_user.username
     try:
-        if not username:
+        username = message.from_user.username
+        print(username)
+        if username:
             user_id = message.from_id
             if user_id:
                 is_instance = db.select_partner(user_id)
@@ -34,14 +35,13 @@ async def command_start(message: types.Message):
                     invite_link = db.select_link(user_id)[0]
                     await bot.send_message(message.chat.id, f'Привет, кажется ты уже получал у меня ссылку. '
                                                             f'Кстати вот она: {invite_link}', reply_markup=main_menu_markup)
-            else:
-                await bot.send_message(message.chat.id, 'Привет. Укажи пожалуйста свой username в настройках телеграма, '
-                                                        'чтобы я мог привязать к тебе твою реферальную ссылку :)', reply_markup=main_menu_markup)
         else:
+            print('not username')
             await bot.send_message(message.chat.id, 'Привет. Для полноценной работы, мне нужно, чтобы у тебя в профиле был "Никнейм".\n'
                                                     'Поставь его пожалуйста и мы продолжим. Когда поставишь - напиши еще раз /start\n'
                                                     'Поставить его можно вот тут: Настройки->Имя пользователя->Введите никнейм')
     except:
+        print('еще какая-то хуйня')
         await bot.send_message(message.chat.id, 'Привет. Для полноценной работы, мне нужно, чтобы у тебя в профиле был "Никнейм".\n'
                                                 'Поставь его пожалуйста и мы продолжим. Когда поставишь - напиши еще раз /start\n'
                                                 'Поставить его можно вот тут: Настройки->Имя пользователя->Введите никнейм')
