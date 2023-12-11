@@ -29,8 +29,8 @@ async def command_start(message: types.Message):
                     object_link = await bot.create_chat_invite_link(chat_id=channel_id, name=username, creates_join_request=True)
                     invite_link = object_link['invite_link']
                     db.insert_partner(user_id, username, invite_link)
-                    await bot.send_message(message.chat.id, f'Привет! Вот твоя реферальная ссылочка, '
-                                                            f'надеюсь ты пригласишь много людей:)\n{invite_link}', reply_markup=main_menu_markup)
+                    await bot.send_message(message.chat.id, f'Зарабатывай на приглашениях по своей рефералке и '
+                                                            f'получай разные плюшки на канале!)\nВот твоя реферальная ссылка: {invite_link}', reply_markup=main_menu_markup)
                 else:
                     invite_link = db.select_link(user_id)[0]
                     await bot.send_message(message.chat.id, f'Привет, кажется ты уже получал у меня ссылку. '
