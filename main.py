@@ -29,13 +29,13 @@ async def sheduler():
     print('Timer started')
     while True:
         current_date = str(datetime.now().time())[:5]
-        if current_date != '18:50':
+        if current_date != '00:00':
             await asyncio.sleep(60)
-        elif current_date == '18:50':
+        elif current_date == '00:00':
             today = datetime.today().strftime('%d-%m-%Y')
             result = db.select_count_ref_today(today)
             hash_ref = sorted(result, key=lambda d: d[1], reverse=True)
-            
+
             top_ref = []
             print('Пошла рассылка')
             for i in range(len(hash_ref)):

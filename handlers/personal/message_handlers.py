@@ -6,7 +6,7 @@ from fsm import *
 from keyboard import *
 import re
 from data import db
-from datetime import datetime
+from datetime import datetime, timedelta
 
 
 ########################################
@@ -41,11 +41,12 @@ async def command_start(message: types.Message):
 async def response_shop(message: types.Message):
     user_id = message.from_id
     ref_balance = db.select_ref_balance(user_id)[0]
-    await bot.send_message(message.chat.id, f'Ваш баланс: {ref_balance} рефералов\nФильм/серия '
-                                            '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
-                                            'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
+    ru_balance = db.select_balance(user_id)[0]
+    await bot.send_message(message.chat.id, f'Ваш баланс: {ref_balance} рефералов\nВаш баланс RU: {ru_balance}\nЗаказать Фильм/серию '
+                                            '- 20 рефералов\nРеклама на канале - 200 рефералов\n\n'
+                                            'Вывести деньги на карту или Qiwi - 200RU = 200 рублей', reply_markup=markup_shop)
 
-    #db.update_ref_balance(user_id, 205)
+    # db.update_ref_balance(user_id, 205)
 
 
 @dp.message_handler(Text(equals='Рефералы'))
@@ -61,7 +62,7 @@ async def response_ref(message: types.Message):
             ref_today = db.select_user_on_date(user_id, today_date)
             ref_link = db.select_link(user_id)[0]
             balance_ru = db.select_balance(user_id)[0]
-            await bot.send_message(message.chat.id, f'Баланс RU - {balance_ru}\nВаш баланс - {ref_balance} рефералов\nВсего приглашённых рефералов - {all_ref}\n'
+            await bot.send_message(message.chat.id, f'Баланс RU - {balance_ru}\nБаланс рефералов - {ref_balance}\nВсего приглашённых рефералов - {all_ref}\n'
                                                     f'Приглашенных сегодня - {ref_today}\nВаша реферальная ссылка - {ref_link}')
         else:
             pass
@@ -72,27 +73,69 @@ async def response_ref(message: types.Message):
 @dp.message_handler(Text(equals='Топ'))
 async def response_top(message: types.Message):
     top = []
+    yesterday = datetime.today() - timedelta(days=1)
+    yesterday = yesterday.strftime('%d-%m-%Y')
     today = datetime.today().strftime('%d-%m-%Y')
-    users = db.select_all_users_today(today)
-    if not users:
-        await bot.send_message(message.chat.id, 'Сегодня пока никто еще никого не пригласил :(')
+    users_today = db.select_all_users_today(today)
+    users_yesterday = db.select_all_users_today(yesterday)
+    if not users_today:
+        if users_yesterday:
+            result = db.select_count_ref_today(yesterday)
+            hash_ref = sorted(result, key=lambda d: d[1], reverse=True)
+            top_ref = []
+            for i in range(len(hash_ref)):
+                if i <= 9:
+                    top_ref.append(
+                        f'{i+1}. @{hash_ref[i][0]}: {hash_ref[i][1]}')
+                else:
+                    break
+            top_ref = '\n'.join(top_ref)
+            await bot.send_message(message.chat.id, f'Топ 10 вчера по приглашениям:\n{top_ref}')
+        else:
+            await bot.send_message(message.chat.id, 'Ни вчера, ни сегодня никто никого не приглашал :()')
     else:
-        result = db.select_count_ref_today(today)
+        result = db.select_count_ref_today(yesterday)
         hash_ref = sorted(result, key=lambda d: d[1], reverse=True)
         top_ref = []
         for i in range(len(hash_ref)):
             if i <= 9:
-                top_ref.append(f'{i+1}. @{hash_ref[i][0]}: {hash_ref[i][1]}')
+                top_ref.append(
+                    f'{i+1}. @{hash_ref[i][0]}: {hash_ref[i][1]}')
             else:
                 break
         top_ref = '\n'.join(top_ref)
-        await bot.send_message(message.chat.id, f'Топ 10 сегодня по приглашениям:\n{top_ref}')
+        result = db.select_count_ref_today(today)
+        hash_ref_ = sorted(result, key=lambda d: d[1], reverse=True)
+        top_ref_ = []
+        for i in range(len(hash_ref_)):
+            if i <= 9:
+                top_ref_.append(
+                    f'{i+1}. @{hash_ref_[i][0]}: {hash_ref_[i][1]}')
+            else:
+                break
+        top_ref_ = '\n'.join(top_ref_)
+        await bot.send_message(message.chat.id, f'Топ 10 сегодня по приглашениям:\n{top_ref_}\n\nТоп 10 за вчера:\n{top_ref}')
 
 
 @dp.message_handler(Text(equals='Инфо'))
 async def response_info(message: types.Message):
-    await bot.send_message(message.chat.id, 'Рефералы - это люди, которых вы пригласили в наш канал по своей реферальной ссылке'
-                                            'и они подписались. За приглашенных рефералов можно покупать различные привелегии.')
+    text = ''' Рефералы - это люди, которых вы пригласили в наш канал по своей реферальной ссылке и они подписались.
+За приглашенных рефералов можно покупать различные привилегии, а также получать реальные деньги.
+Топ 10 человек по рефералам за день ежедневно получают деньги в виде RU на свой баланс, которые можно вывести на карту или Qiwi кошелёк.
+Минимальный вывод 200 RU = 200 рублей.
+    
+Количество получаемых RU:
+Топ 1 - 40 RU
+Топ 2 - 30 RU
+Топ 3 - 20 RU
+Топ 4 - 20 RU
+Топ 5 - 20 RU
+Топ 6 - 20 RU
+Топ 7 - 20 RU
+Топ 8 - 10 RU
+Топ 9 - 10 RU
+Топ 10 - 10 RU'''
+    await bot.send_message(message.chat.id, text)
 
 
 @dp.chat_join_request_handler()
@@ -126,7 +169,7 @@ async def films_response(callback_query: types.CallbackQuery, state: FSMContext)
         await bot.send_message(callback_query.message.chat.id, f'Напишите информацию по заказу.', reply_markup=markup_cancel)
         await Buy_films().films.set()
     else:
-        await bot.send_message(callback_query.message.chat.id, 'У вас пока не хватает на покупку. Приглашайте больше людей', reply_markup=markup_shop)
+        await bot.send_message(callback_query.message.chat.id, 'У вас не хватает рефералов для заказа фильма, стоимость заказа 20 рефералов', reply_markup=markup_shop)
     await callback_query.answer()
 
 
@@ -135,8 +178,8 @@ async def cancel(callback_query: types.CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
     ref_balance = db.select_ref_balance(user_id)[0]
     await bot.send_message(callback_query.message.chat.id, f'Ваш баланс: {ref_balance} рефералов\nФильм/серия '
-                                            '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
-                                            'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
+                           '- 10 рефералов\nРеклама на канале - 200 рефералов\n\n'
+                           'Вывести деньги на карту - 200RU', reply_markup=markup_shop)
     await state.reset_data()
     await state.reset_state()
     await state.finish()
@@ -152,8 +195,8 @@ async def info_buy_films(message: types.Message, state: FSMContext):
     info = await state.get_data()
     print(user_id)
     ref_balance = db.select_ref_balance(user_id)[0]
-    db.update_ref_balance(user_id, ref_balance-10)
-    await bot.send_message(6770023877, f'Новый заказ от @{username}\n\n{info["films"]}')
+    db.update_ref_balance(user_id, ref_balance-20)
+    await bot.send_message(625558881, f'Новый заказ от @{username}\n\n{info["films"]}')
     await state.finish()
 
 
@@ -166,7 +209,7 @@ async def adv_response(callback_query: types.CallbackQuery, state: FSMContext):
         await bot.send_message(callback_query.message.chat.id, f'Напишите информацию по заказу.', reply_markup=markup_cancel)
         await Buy_adv().adv.set()
     else:
-        await bot.send_message(callback_query.message.chat.id, 'У вас пока не хватает на покупку. Приглашайте больше людей', reply_markup=markup_shop)
+        await bot.send_message(callback_query.message.chat.id, 'Недостаточно рефералов для заказа рекламы. Стоимость рекламного поста - 200 рефералов', reply_markup=markup_shop)
     await callback_query.answer()
 
 
@@ -180,18 +223,46 @@ async def info_buy_films(message: types.Message, state: FSMContext):
     print(user_id)
     ref_balance = db.select_ref_balance(user_id)[0]
     db.update_ref_balance(user_id, ref_balance-200)
-    await bot.send_message(6770023877, f'Новый заказ от @{username}\n\n{info["adv"]}')
+    await bot.send_message(625558881, f'Новый заказ от @{username}\n\n{info["adv"]}')
     await state.finish()
 
 
 @dp.callback_query_handler(lambda call: call.data == '/payment_button')
-async def payment_response(callback_query: types.CallbackQuery):
+async def payment_response(callback_query: types.CallbackQuery, state: FSMContext):
     user_id = callback_query.from_user.id
     username = callback_query.from_user.username
     balance = db.select_balance(user_id)[0]
     if balance < 200:
-        await bot.send_message(callback_query.message.chat.id, 'Вам пока не хватает на вывод. Вывод от 200')
+        await bot.send_message(callback_query.message.chat.id, 'У вас недостаточно RU, минимальная сумма для вывода - 200 RU')
     elif balance >= 200:
-        await bot.send_message(callback_query.message.chat.id, 'Отлично, зафиксировал запрос на вывод. Ожидайте, пока с вами свяжутся')
-        await bot.send_message(6770023877, f'Новый запрос на вывод средств от @{username}')
+        await bot.send_message(callback_query.message.chat.id, 'Введите сумму RU, которую хотите вывести', reply_markup=markup_cancel)
+        await Out_money().count.set()
+        #await bot.send_message(625558881, f'Новый запрос на вывод средств от @{username}')
     await callback_query.answer()
+
+
+@dp.message_handler(state=Out_money.count)
+async def count_money(message: types.Message, state: FSMContext):
+    try:
+        if int(message.text) >= 200:
+            await state.update_data(count=message.text)
+            user_id = message.from_user.id
+            count_money = db.select_balance(user_id)[0]
+            db.update_balance(user_id, count_money-int(message.text))
+            await bot.send_message(message.chat.id, 'Введите номер карты или Qiwi кошелька')
+            await Out_money.next()
+    except:
+        await bot.send_message(message.chat.id, 'Вы ввели некорректное значение. Попробуйте еще раз', reply_markup=markup_shop)
+        await state.reset_data()
+        await state.reset_state()
+        await state.finish()
+
+
+@dp.message_handler(state=Out_money.card)
+async def card_money(message: types.Message, state: FSMContext):
+    await state.update_data(card=message.text)
+    data_out = await state.get_data()
+    #print(data_out)
+    await bot.send_message(message.chat.id, 'Зафиксировал запрос на вывод. Ожидайте')
+    await bot.send_message(625558881, f'Пришел новый запрос на вывод денег:\nСумма: {data_out["count"]}\nНомер: {data_out["card"]}\nПолучатель: @{message.from_user.username}')
+    await state.finish()

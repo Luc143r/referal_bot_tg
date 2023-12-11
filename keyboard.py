@@ -18,7 +18,7 @@ main_menu_markup.add(main_menu_shop, main_menu_ref, main_menu_top, main_menu_inf
 
 films_button_shop = InlineKeyboardButton('Фильм/Серия', callback_data='/films_button')
 adv_button_shop = InlineKeyboardButton('Реклама', callback_data='/adv_button')
-out_money_shop = InlineKeyboardButton('Вывести деньги на карту', callback_data='/payment_button')
+out_money_shop = InlineKeyboardButton('Вывод RU', callback_data='/payment_button')
 markup_shop = InlineKeyboardMarkup()
 markup_shop.row(films_button_shop, adv_button_shop, out_money_shop)
 

@@ -11,4 +11,5 @@ class Buy_adv(StatesGroup):
 
 
 class Out_money(StatesGroup):
-    out = State()
+    count = State()
+    card = State()
