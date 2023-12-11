@@ -60,7 +60,8 @@ async def response_ref(message: types.Message):
             all_ref = db.select_all_ref(user_id)[0]
             ref_today = db.select_user_on_date(user_id, today_date)
             ref_link = db.select_link(user_id)[0]
-            await bot.send_message(message.chat.id, f'Ваш баланс - {ref_balance} рефералов\nВсего приглашённых рефералов - {all_ref}\n'
+            balance_ru = db.select_balance(user_id)[0]
+            await bot.send_message(message.chat.id, f'Баланс RU - {balance_ru}\nВаш баланс - {ref_balance} рефералов\nВсего приглашённых рефералов - {all_ref}\n'
                                                     f'Приглашенных сегодня - {ref_today}\nВаша реферальная ссылка - {ref_link}')
         else:
             pass
@@ -83,7 +84,7 @@ async def response_top(message: types.Message):
             if i <= 9:
                 top_ref.append(f'{i+1}. @{hash_ref[i][0]}: {hash_ref[i][1]}')
             else:
-                return
+                break
         top_ref = '\n'.join(top_ref)
         await bot.send_message(message.chat.id, f'Топ 10 сегодня по приглашениям:\n{top_ref}')
 

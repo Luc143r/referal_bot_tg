@@ -126,3 +126,15 @@ class Database:
     def update_all_ref(self, user_id: int, count: int, cursor: Cursor):
         cursor.execute(
             'UPDATE Partners SET all_ref = ? WHERE user_id = ?', (count, user_id,))
+
+    
+    @db_session
+    def select_partner_id(self, username: str, cursor: Cursor):
+        cursor.execute('SELECT user_id FROM Partners WHERE user = ?', (username,))
+        result = cursor.fetchone()
+        return result
+
+    
+    @db_session
+    def update_balance(self, user_id: int, balance: int, cursor: Cursor):
+        cursor.execute('UPDATE Partners SET balance = ? WHERE user_id = ?', (balance, user_id,))
