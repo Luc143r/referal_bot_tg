@@ -77,8 +77,15 @@ async def response_top(message: types.Message):
         await bot.send_message(message.chat.id, 'Сегодня пока никто еще никого не пригласил :(')
     else:
         result = db.select_count_ref_today(today)
-        print(result)
-    await bot.send_message(message.chat.id, 'Здесь будет топчик по приглосам потом. Из бд подтянется')
+        hash_ref = sorted(result, key=lambda d: d[1], reverse=True)
+        top_ref = []
+        for i in range(len(hash_ref)):
+            if i <= 9:
+                top_ref.append(f'{i+1}. @{hash_ref[i][0]}: {hash_ref[i][1]}')
+            else:
+                return
+        top_ref = '\n'.join(top_ref)
+        await bot.send_message(message.chat.id, f'Топ 10 сегодня по приглашениям:\n{top_ref}')
 
 
 @dp.message_handler(Text(equals='Инфо'))
@@ -174,3 +181,16 @@ async def info_buy_films(message: types.Message, state: FSMContext):
     db.update_ref_balance(user_id, ref_balance-200)
     await bot.send_message(6770023877, f'Новый заказ от @{username}\n\n{info["adv"]}')
     await state.finish()
+
+
+@dp.callback_query_handler(lambda call: call.data == '/payment_button')
+async def payment_response(callback_query: types.CallbackQuery):
+    user_id = callback_query.from_user.id
+    username = callback_query.from_user.username
+    balance = db.select_balance(user_id)[0]
+    if balance < 200:
+        await bot.send_message(callback_query.message.chat.id, 'Вам пока не хватает на вывод. Вывод от 200')
+    elif balance >= 200:
+        await bot.send_message(callback_query.message.chat.id, 'Отлично, зафиксировал запрос на вывод. Ожидайте, пока с вами свяжутся')
+        await bot.send_message(6770023877, f'Новый запрос на вывод средств от @{username}')
+    await callback_query.answer()

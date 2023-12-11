@@ -117,7 +117,7 @@ class Database:
     @db_session
     def select_count_ref_today(self, date: str, cursor: Cursor):
         cursor.execute(
-            'SELECT username_owner, COUNT(username_owner) FROM Users GROUP BY username_owner')
+            'SELECT username_owner, COUNT(username_owner) FROM Users WHERE date = ? GROUP BY username_owner', (date,))
         result = cursor.fetchall()
         return result
 
